@@ -172,25 +172,21 @@ function initSumPoolChart() {
       top: 0,
       textStyle: { fontSize: 12 }
     },
-    grid: { left: 50, right: 60, top: 35, bottom: 25 },
+    grid: { left: 60, right: 60, top: 35, bottom: 25 },
     xAxis: {
       type: 'category',
       data: periods,
-      axisLabel: { rotate: 45, fontSize: 10, interval: 4 }
+      axisLabel: { rotate: 45, fontSize: 11, interval: 4 }
     },
     yAxis: [
       {
         type: 'value',
         name: '和值',
-        min: 50,
-        max: 140,
-        splitLine: { lineStyle: { type: 'dashed', color: '#eee' } }
+        splitLine: { lineStyle: { color: '#f0f0f0' } }
       },
       {
         type: 'value',
         name: '奖池(亿)',
-        min: 0,
-        max: 10,
         splitLine: { show: false },
         axisLabel: {
           formatter: v => (v / 1e8).toFixed(1)
@@ -205,12 +201,12 @@ function initSumPoolChart() {
         smooth: false,
         symbol: 'circle',
         symbolSize: 5,
-        lineStyle: { width: 2, color: '#ff4d4f' },
-        itemStyle: { color: '#ff4d4f' },
+        lineStyle: { width: 2.5, color: '#5470c6' },
+        itemStyle: { color: '#5470c6' },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(255,77,79,0.25)' },
-            { offset: 1, color: 'rgba(255,77,79,0.02)' }
+            { offset: 0, color: 'rgba(84,112,198,0.2)' },
+            { offset: 1, color: 'rgba(84,112,198,0.02)' }
           ])
         }
       },
@@ -220,7 +216,7 @@ function initSumPoolChart() {
         data: ma10,
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 2, color: '#faad14', type: 'dashed' }
+        lineStyle: { width: 1.5, color: '#fac858' }
       },
       {
         name: '奖池累计(亿元)',
@@ -229,11 +225,11 @@ function initSumPoolChart() {
         data: pools,
         smooth: true,
         symbol: 'none',
-        lineStyle: { width: 2, color: '#1890ff' },
+        lineStyle: { width: 1.5, color: '#91cc75' },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(24,144,255,0.2)' },
-            { offset: 1, color: 'rgba(24,144,255,0.02)' }
+            { offset: 0, color: 'rgba(145,204,117,0.2)' },
+            { offset: 1, color: 'rgba(145,204,117,0.02)' }
           ])
         }
       }
@@ -260,25 +256,21 @@ function initSpanAcChart() {
       top: 0,
       textStyle: { fontSize: 12 }
     },
-    grid: { left: 45, right: 40, top: 35, bottom: 25 },
+    grid: { left: 60, right: 45, top: 35, bottom: 25 },
     xAxis: {
       type: 'category',
       data: periods,
-      axisLabel: { rotate: 45, fontSize: 10, interval: 4 }
+      axisLabel: { rotate: 45, fontSize: 11, interval: 4 }
     },
     yAxis: [
       {
         type: 'value',
         name: '跨度',
-        min: 0,
-        max: 35,
-        splitLine: { lineStyle: { type: 'dashed', color: '#eee' } }
+        splitLine: { lineStyle: { color: '#f0f0f0' } }
       },
       {
         type: 'value',
         name: 'AC值',
-        min: 0,
-        max: 10,
         splitLine: { show: false }
       }
     ],
@@ -290,8 +282,8 @@ function initSpanAcChart() {
         barWidth: 10,
         itemStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: '#ff7875' },
-            { offset: 1, color: '#ffccc7' }
+            { offset: 0, color: '#5470c6' },
+            { offset: 1, color: '#91cc75' }
           ]),
           borderRadius: [3, 3, 0, 0]
         }
@@ -304,8 +296,8 @@ function initSpanAcChart() {
         smooth: true,
         symbol: 'diamond',
         symbolSize: 6,
-        lineStyle: { width: 2, color: '#1890ff' },
-        itemStyle: { color: '#1890ff' }
+        lineStyle: { width: 2.5, color: '#fac858' },
+        itemStyle: { color: '#fac858' }
       }
     ]
   })
@@ -324,37 +316,27 @@ function initOddEvenChart() {
   oddEvenChart.setOption({
     tooltip: {
       trigger: 'axis',
-      axisPointer: { type: 'shadow' },
-      formatter(params) {
-        let s = `<b>${params[0].axisValue}</b><br/>`
-        params.forEach(p => {
-          s += `${p.marker} ${p.seriesName}: ${p.value}<br/>`
-        })
-        return s
-      }
+      axisPointer: { type: 'shadow' }
     },
     legend: {
       data: ['奇数', '偶数', '连号对数'],
       top: 0,
       textStyle: { fontSize: 12 }
     },
-    grid: { left: 45, right: 70, top: 35, bottom: 25 },
+    grid: { left: 60, right: 70, top: 35, bottom: 25 },
     xAxis: {
       type: 'category',
       data: periods,
-      axisLabel: { rotate: 45, fontSize: 10, interval: 4 }
+      axisLabel: { rotate: 45, fontSize: 11, interval: 4 }
     },
     yAxis: [
       {
         type: 'value',
-        max: 5,
-        splitLine: { lineStyle: { type: 'dashed', color: '#eee' } }
+        splitLine: { lineStyle: { color: '#f0f0f0' } }
       },
       {
         type: 'value',
         name: '连号',
-        min: 0,
-        max: 3,
         splitLine: { show: false }
       }
     ],
@@ -365,8 +347,8 @@ function initOddEvenChart() {
         stack: 'oddEven',
         data: odds,
         barWidth: 14,
-        itemStyle: { color: '#ff4d4f', borderRadius: [0, 0, 0, 0] },
-        label: { show: true, position: 'inside', fontSize: 10, color: '#fff', formatter: p => `${p.value}奇` }
+        itemStyle: { color: '#5470c6' },
+        label: { show: true, position: 'inside', fontSize: 11, color: '#fff', formatter: p => `${p.value}奇` }
       },
       {
         name: '偶数',
@@ -374,8 +356,8 @@ function initOddEvenChart() {
         stack: 'oddEven',
         data: evens,
         barWidth: 14,
-        itemStyle: { color: '#1890ff', borderRadius: [3, 3, 0, 0] },
-        label: { show: true, position: 'inside', fontSize: 10, color: '#fff', formatter: p => `${p.value}偶` }
+        itemStyle: { color: '#91cc75', borderRadius: [3, 3, 0, 0] },
+        label: { show: true, position: 'inside', fontSize: 11, color: '#fff', formatter: p => `${p.value}偶` }
       },
       {
         name: '连号对数',
@@ -385,9 +367,9 @@ function initOddEvenChart() {
         smooth: true,
         symbol: 'triangle',
         symbolSize: 8,
-        lineStyle: { width: 2, color: '#52c41a' },
-        itemStyle: { color: '#52c41a' },
-        label: { show: true, fontSize: 10, color: '#52c41a', formatter: p => `${p.value}对` }
+        lineStyle: { width: 2.5, color: '#fac858' },
+        itemStyle: { color: '#fac858' },
+        label: { show: true, fontSize: 11, color: '#fac858', formatter: p => `${p.value}对` }
       }
     ]
   })
@@ -404,38 +386,29 @@ function initOmissionChart() {
   omissionChart.setOption({
     tooltip: {
       trigger: 'axis',
-      axisPointer: { type: 'shadow' },
-      formatter(params) {
-        const idx = parseInt(params[0].axisValue) - 1
-        return `<b>号码 ${padNum(idx + 1)}</b><br/>
-                ${params[0].marker} 出现频次: ${params[0].value}次<br/>
-                ${params[1].marker} 遗漏值: ${params[1].value}期`
-      }
+      axisPointer: { type: 'shadow' }
     },
     legend: {
       data: ['出现频次(近30期)', '遗漏期数'],
       top: 0,
       textStyle: { fontSize: 12 }
     },
-    grid: { left: 50, right: 40, top: 35, bottom: 25 },
+    grid: { left: 60, right: 45, top: 35, bottom: 25 },
     xAxis: {
       type: 'category',
       data: nums,
-      axisLabel: { fontSize: 10, interval: 2 }
+      axisLabel: { fontSize: 11, interval: 2 }
     },
     yAxis: [
       {
         type: 'value',
         name: '频次',
-        max: Math.max(...freqs, 5) + 2,
-        splitLine: { lineStyle: { type: 'dashed', color: '#eee' } }
+        splitLine: { lineStyle: { color: '#f0f0f0' } }
       },
       {
         type: 'value',
         name: '遗漏',
         inverse: true,
-        min: 0,
-        max: Math.max(...omits, 10) + 5,
         splitLine: { show: false },
         axisLabel: { color: '#999' }
       }
@@ -448,8 +421,8 @@ function initOmissionChart() {
         barWidth: 6,
         itemStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: '#ff4d4f' },
-            { offset: 1, color: '#ffa39e' }
+            { offset: 0, color: '#5470c6' },
+            { offset: 1, color: '#91cc75' }
           ]),
           borderRadius: [2, 2, 0, 0]
         }
@@ -462,8 +435,8 @@ function initOmissionChart() {
         barWidth: 6,
         itemStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: '#bbb' },
-            { offset: 1, color: '#e8e8e8' }
+            { offset: 0, color: '#e8e8e8' },
+            { offset: 1, color: '#f5f5f5' }
           ]),
           borderRadius: [2, 2, 0, 0]
         }
