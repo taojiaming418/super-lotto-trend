@@ -151,48 +151,74 @@ function computeStats(frontNums, backNums) {
 }
 
 // 计算号码评分说明
+// 计算一个评分在全部号码中的百分位排名
+function calcPercentile(score, allScores) {
+  if (!allScores || allScores.length === 0) return 50
+  const sorted = [...allScores].sort((a, b) => a - b)
+  const rank = sorted.filter(x => x <= score).length
+  return Math.round((rank / sorted.length) * 100)
+}
+
 function getScoreTitle(num, strategy) {
   if (!strategy.scoreMap) return ''
   const s = strategy.scoreMap[num]
-  return s ? `特征评分: ${s}` : ''
+  const pct = calcPercentile(s, strategy.frontScores?.map(x => x.score) || [])
+  return s ? `V26评分: ${s} · 高于${pct}%的号码` : ''
 }
 
 function getBackScoreTitle(num, strategy) {
   if (!strategy.backScoreMap) return ''
   const s = strategy.backScoreMap[num]
-  return s ? `后区评分: ${s}` : ''
+  const pct = calcPercentile(s, strategy.backScores?.map(x => x.score) || [])
+  return s ? `后区评分: ${s} · 高于${pct}%的号码` : ''
 }
 
 const badgeColors = ['#1890ff', '#52c41a', '#fa8c16']
 const scoreColors = ['#1890ff', '#52c41a', '#fa8c16']
 
-// 计算置信度
+// 置信度 = 所有选中号码的平均百分位排名
+// 百分位越高说明V26特征越强，参考价值越大
 function calcConfidence(frontNums, backNums, frontScores, backScores) {
-  let total = 0
+  let totalPct = 0
+  let count = 0
+  
+  const allFront = frontScores.map(s => s.score)
+  const allBack = backScores.map(s => s.score)
+  
   for (const n of frontNums) {
     const s = frontScores.find(x => x.number === n)
-    if (s) total += s.score
+    if (s) {
+      totalPct += calcPercentile(s.score, allFront)
+      count++
+    }
   }
   for (const n of backNums) {
     const s = backScores.find(x => x.number === n)
-    if (s) total += s.score
+    if (s) {
+      totalPct += calcPercentile(s.score, allBack)
+      count++
+    }
   }
-  // 归一化到 50-95
-  const maxScore = 250
-  return Math.min(95, Math.max(50, Math.round((total / maxScore) * 100)))
+  
+  if (count === 0) return 50
+  const avg = Math.round(totalPct / count)
+  return Math.min(95, Math.max(50, avg))
 }
 
+// 星级评分（基于百分位）
 function calcStars(frontNums, frontScores) {
-  let total = 0
+  if (!frontScores || frontScores.length === 0) return 0
+  const allFront = frontScores.map(s => s.score)
+  let totalPct = 0
   for (const n of frontNums) {
     const s = frontScores.find(x => x.number === n)
-    if (s) total += s.score
+    if (s) totalPct += calcPercentile(s.score, allFront)
   }
-  const avg = total / frontNums.length
-  if (avg > 30) return 5
-  if (avg > 20) return 4
-  if (avg > 12) return 3
-  if (avg > 6) return 2
+  const avg = totalPct / frontNums.length
+  if (avg >= 85) return 5
+  if (avg >= 70) return 4
+  if (avg >= 55) return 3
+  if (avg >= 40) return 2
   return 1
 }
 
@@ -307,9 +333,9 @@ const confidenceIcon = computed(() => {
 
 const confidenceTip = computed(() => {
   const v = overallConfidence.value
-  if (v >= 80) return '风险等级：较低。模型特征匹配度高，参考价值较大。'
-  if (v >= 60) return '风险等级：中等偏上。结果只代表统计筛选，不保证中奖。'
-  return '风险等级：较高。特征匹配度偏低，建议参考其他数据。'
+  if (v >= 80) return `所选号码的V26特征评分处于前${v}%水平，模型匹配度较高`
+  if (v >= 60) return `所选号码的V26评分高于${v}%的号码，结果仅供参考`
+  return `所选号码评分仅高于${v}%的号码，特征偏弱，建议参考走势图表`
 })
 
 // 重新生成
