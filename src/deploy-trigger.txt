@@ -1,1 +1,0 @@
-console.log("Deploy check: " + new Date().toLocaleString("zh-CN"))
