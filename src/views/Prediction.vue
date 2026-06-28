@@ -780,4 +780,66 @@ function regenerate() {
     font-size: 12px;
   }
 }
+
+@media (max-width: 480px) {
+  .prediction-page {
+    padding: 0 2px;
+  }
+  .card {
+    padding: 14px;
+  }
+  .page-header {
+    flex-direction: column;
+  }
+  .header-actions {
+    width: 100%;
+  }
+  .btn {
+    flex: 1;
+    justify-content: center;
+  }
+  .strategy-card {
+    padding: 14px;
+  }
+  .strategy-badge {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+  .strategy-name {
+    font-size: 15px;
+  }
+  .balls-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .ball {
+    width: 26px;
+    height: 26px;
+    font-size: 10px;
+  }
+  .balls-divider {
+    align-self: center;
+  }
+  .stats-row {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .stat-item {
+    flex: 1 1 45%;
+    padding: 6px 4px;
+  }
+  .stat-value {
+    font-size: 11px;
+  }
+  .score-bar {
+    flex-wrap: wrap;
+  }
+  .alert-box {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
 </style>

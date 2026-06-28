@@ -616,4 +616,45 @@ const hotColdOmission = computed(() => {
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 640px) {
+  .page-header {
+    flex-direction: column;
+  }
+  .info-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .info-bar-left {
+    width: 100%;
+  }
+  .info-bar-right {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .card {
+    padding: 16px;
+  }
+  .draw-balls {
+    gap: 6px;
+  }
+  .ball {
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+  }
+  .ref-items {
+    gap: 12px;
+  }
+  .card-header {
+    flex-wrap: wrap;
+  }
+  .stat-card {
+    padding: 14px;
+  }
+  .section-title {
+    font-size: 15px;
+  }
+}
 </style>

@@ -380,4 +380,92 @@ tr:last-child td { border-bottom: none; }
   .modal-numbers { flex-direction: column; gap: 12px; }
   .stat-cell { font-size: 11px; }
 }
+
+@media (max-width: 640px) {
+  .history-page {
+    padding: 0 6px;
+  }
+  .card {
+    padding: 16px;
+  }
+  .table-card {
+    padding: 0;
+  }
+  .table-container {
+    overflow-x: auto;
+  }
+  table {
+    font-size: 12px;
+    min-width: 600px;
+  }
+  th, td {
+    padding: 6px 8px;
+  }
+  .ball {
+    width: 20px;
+    height: 20px;
+    font-size: 9px;
+  }
+  .ball.separator {
+    margin: 0 1px;
+  }
+  .numbers-cell {
+    gap: 2px;
+  }
+  .modal-card {
+    padding: 20px 16px;
+    width: 95%;
+  }
+  .modal-numbers {
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+  }
+  .modal-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .money-row {
+    flex-wrap: wrap;
+  }
+  .btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-right {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .period-selector {
+    width: 100%;
+  }
+  .select-input {
+    width: 100%;
+  }
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  table {
+    font-size: 11px;
+    min-width: 500px;
+  }
+  th, td {
+    padding: 4px 6px;
+  }
+  .modal-card {
+    padding: 16px 12px;
+    border-radius: 12px;
+  }
+  .modal-overlay {
+    align-items: flex-end;
+  }
+  .modal-card {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 16px 16px 0 0;
+  }
+}
 </style>

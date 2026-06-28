@@ -575,4 +575,62 @@ tr:hover td {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+@media (max-width: 640px) {
+  .structure-page {
+    padding: 0 6px;
+  }
+  .page-header {
+    flex-direction: column;
+  }
+  .page-title {
+    font-size: 20px;
+  }
+  .card {
+    padding: 14px;
+  }
+  .feature-card {
+    padding: 16px;
+  }
+  .feature-value-grid {
+    grid-template-columns: 1fr;
+  }
+  .feature-table {
+    padding: 0;
+  }
+  .table-container {
+    overflow-x: auto;
+  }
+  table {
+    font-size: 12px;
+  }
+  th, td {
+    padding: 6px 8px;
+  }
+  .section-title {
+    font-size: 15px;
+  }
+  .omission-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .omission-balls {
+    gap: 4px;
+  }
+  .ball.ball-small {
+    width: 24px;
+    height: 24px;
+    font-size: 10px;
+  }
+  .omission-stats {
+    grid-template-columns: 1fr;
+  }
+  .feature-row {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .feature-label {
+    font-size: 12px;
+  }
+}
 </style>

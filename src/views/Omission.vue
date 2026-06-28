@@ -1021,4 +1021,72 @@ function updatePrediction() {
     gap: 10px;
   }
 }
+
+@media (max-width: 480px) {
+  .omission-page {
+    padding: 0 4px;
+  }
+  .card {
+    padding: 14px;
+  }
+  .front-heatmap {
+    grid-template-columns: repeat(5, 1fr);
+  }
+  .back-heatmap {
+    max-width: 100%;
+    grid-template-columns: repeat(6, 1fr);
+  }
+  .heatmap-cell {
+    padding: 4px 2px;
+    min-height: 40px;
+  }
+  .heatmap-number {
+    font-size: 11px;
+  }
+  .heatmap-omission {
+    font-size: 8px;
+  }
+  .stat-cards-row {
+    grid-template-columns: 1fr;
+  }
+  .stat-card {
+    padding: 12px;
+  }
+  .echart-container {
+    height: 200px;
+  }
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+  .ball-lg {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+  .draw-numbers {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .number-separator {
+    transform: rotate(90deg);
+  }
+  .reference-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .reference-item {
+    padding: 8px 6px;
+  }
+  .latest-draw-section {
+    padding: 12px;
+  }
+  .heatmap-legend {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .legend-step {
+    width: 18px;
+    height: 10px;
+  }
+}
 </style>

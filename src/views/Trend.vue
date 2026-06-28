@@ -541,4 +541,54 @@ onUnmounted(() => {
   .heatmap-back { grid-template-columns: repeat(6, 1fr); }
   .chart-container { height: 280px; }
 }
+
+@media (max-width: 640px) {
+  .page-header {
+    flex-direction: column;
+  }
+  .page-title {
+    font-size: 20px;
+  }
+  .card {
+    padding: 16px;
+  }
+  .card-title {
+    font-size: 14px;
+  }
+  .card-title-row {
+    flex-wrap: wrap;
+  }
+  .chart-container {
+    height: 220px;
+  }
+  .heatmap-cell {
+    padding: 4px 1px;
+    min-height: 44px;
+  }
+  .heatmap-num {
+    font-size: 13px;
+  }
+  .heatmap-freq {
+    font-size: 10px;
+  }
+  .heatmap-omit {
+    font-size: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .heatmap-front {
+    grid-template-columns: repeat(5, 1fr);
+  }
+  .heatmap-back {
+    grid-template-columns: repeat(6, 1fr);
+  }
+  .chart-container {
+    height: 180px;
+  }
+  .heatmap-cell {
+    min-height: 38px;
+    padding: 3px 1px;
+  }
+}
 </style>

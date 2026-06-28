@@ -255,4 +255,37 @@
     height: 160px;
   }
 }
+
+@media (max-width: 480px) {
+  .donate-page {
+    padding: 0 6px;
+  }
+  .page-header {
+    flex-direction: column;
+  }
+  .page-title {
+    font-size: 22px;
+  }
+  .donate-card {
+    padding: 20px 16px;
+  }
+  .donate-card-title {
+    font-size: 18px;
+  }
+  .donate-card-header {
+    margin-bottom: 16px;
+  }
+  .qr-placeholder {
+    width: 140px;
+    height: 140px;
+  }
+  .donate-note {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .note-text {
+    font-size: 13px;
+  }
+}
 </style>
