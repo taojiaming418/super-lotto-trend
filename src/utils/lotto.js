@@ -110,6 +110,21 @@ export function sumRange(history, n = 50) {
   return { low, high }
 }
 
+// 移动平均
+export function movingAvg(arr, window = 10) {
+  if (arr.length < window) return arr.map(() => null)
+  const result = []
+  for (let i = 0; i < arr.length; i++) {
+    if (i < window - 1) {
+      result.push(null)
+    } else {
+      const sum = arr.slice(i - window + 1, i + 1).reduce((a, b) => a + b, 0)
+      result.push(Math.round(sum / window * 100) / 100)
+    }
+  }
+  return result
+}
+
 // 生成号码球HTML类名
 export function getBallClass(num, zone) {
   return zone === 'front' ? 'ball-front' : 'ball-back'

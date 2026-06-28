@@ -129,65 +129,10 @@
       <div class="card-title">中奖号码走势分析可视化图</div>
       <p class="card-subtitle">和值、跨度、AC、奇偶、连号、冷热和遗漏的图形化分析</p>
       <div class="charts-grid">
-        <div class="chart-placeholder">
-          <div class="chart-icon">📈</div>
-          <div class="chart-label">和值与奖池走势</div>
-          <div class="chart-desc">前区和值与奖池累计变化趋势</div>
-          <div class="chart-preview">
-            <svg viewBox="0 0 300 100" class="chart-svg">
-              <polyline points="10,80 50,60 90,70 130,40 170,50 210,30 250,45 290,20"
-                fill="none" stroke="#ff4d4f" stroke-width="2" opacity="0.7"/>
-              <polyline points="10,90 50,85 90,80 130,75 170,65 210,60 250,55 290,50"
-                fill="none" stroke="#1890ff" stroke-width="2" opacity="0.5"/>
-            </svg>
-          </div>
-        </div>
-        <div class="chart-placeholder">
-          <div class="chart-icon">📊</div>
-          <div class="chart-label">跨度/AC复杂度</div>
-          <div class="chart-desc">前区跨度和AC值变化趋势</div>
-          <div class="chart-preview">
-            <svg viewBox="0 0 300 100" class="chart-svg">
-              <polyline points="10,70 50,50 90,75 130,45 170,60 210,35 250,55 290,30"
-                fill="none" stroke="#52c41a" stroke-width="2" opacity="0.7"/>
-              <polyline points="10,85 50,75 90,80 130,65 170,70 210,60 250,72 290,55"
-                fill="none" stroke="#faad14" stroke-width="2" opacity="0.5"/>
-            </svg>
-          </div>
-        </div>
-        <div class="chart-placeholder">
-          <div class="chart-icon">📉</div>
-          <div class="chart-label">奇偶与连号走势</div>
-          <div class="chart-desc">奇偶比值和连号数量变化趋势</div>
-          <div class="chart-preview">
-            <svg viewBox="0 0 300 100" class="chart-svg">
-              <polyline points="10,50 50,40 90,60 130,35 170,55 210,45 250,30 290,50"
-                fill="none" stroke="#722ed1" stroke-width="2" opacity="0.7"/>
-              <polyline points="10,90 50,80 90,85 130,70 170,75 210,65 250,80 290,60"
-                fill="none" stroke="#eb2f96" stroke-width="2" opacity="0.5"/>
-            </svg>
-          </div>
-        </div>
-        <div class="chart-placeholder">
-          <div class="chart-icon">🔥</div>
-          <div class="chart-label">前区冷热遗漏</div>
-          <div class="chart-desc">各号码出现频次与遗漏值</div>
-          <div class="chart-preview">
-            <svg viewBox="0 0 300 100" class="chart-svg">
-              <rect x="10" y="60" width="6" height="40" fill="#ff4d4f" opacity="0.7"/>
-              <rect x="20" y="45" width="6" height="55" fill="#ff7875" opacity="0.7"/>
-              <rect x="30" y="70" width="6" height="30" fill="#ff9c6e" opacity="0.7"/>
-              <rect x="40" y="30" width="6" height="70" fill="#ff4d4f" opacity="0.8"/>
-              <rect x="50" y="80" width="6" height="20" fill="#ffc069" opacity="0.7"/>
-              <rect x="60" y="55" width="6" height="45" fill="#ff7875" opacity="0.7"/>
-              <rect x="70" y="40" width="6" height="60" fill="#ff4d4f" opacity="0.7"/>
-              <rect x="80" y="75" width="6" height="25" fill="#ffc069" opacity="0.7"/>
-              <rect x="90" y="20" width="6" height="80" fill="#ff4d4f" opacity="0.9"/>
-              <polyline points="10,60 20,45 30,70 40,30 50,80 60,55 70,40 80,75 90,20"
-                fill="none" stroke="#1890ff" stroke-width="1.5" stroke-dasharray="4,2" opacity="0.5"/>
-            </svg>
-          </div>
-        </div>
+        <div class="echart-container" ref="sumPoolChartRef"></div>
+        <div class="echart-container" ref="spanAcChartRef"></div>
+        <div class="echart-container" ref="oddEvenChartRef"></div>
+        <div class="echart-container" ref="omissionChartRef"></div>
       </div>
     </div>
 
@@ -243,12 +188,13 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import * as echarts from 'echarts'
 import { lotteryData, getLatestDraw, getTotalPeriods } from '@/data/lottery'
 import {
   frontSum, span, acValue, oddEvenRatio, bigSmallRatio,
   road012Ratio, consecutivePairs, calculateOmission, calculateFrequency,
-  sumRange
+  sumRange, movingAvg
 } from '@/utils/lotto'
 
 // ---------- Data ----------
@@ -405,13 +351,156 @@ const frontHeatmap = computed(() => buildHeatmapData('front'))
 const backHeatmap = computed(() => buildHeatmapData('back'))
 
 // ---------- Actions ----------
+// ===== ECharts Charts =====
+const sumPoolChartRef = ref(null)
+const spanAcChartRef = ref(null)
+const oddEvenChartRef = ref(null)
+const omissionChartRef = ref(null)
+
+let sumPoolChart = null
+let spanAcChart = null
+let oddEvenChart = null
+let omissionChart = null
+
+const recent50ForCharts = computed(() => lotteryData.slice(0, 50).reverse())
+
+function initCharts() {
+  nextTick(() => {
+    initSumPoolChart()
+    initSpanAcChart()
+    initOddEvenChart()
+    initOmissionChart()
+  })
+}
+
+function initSumPoolChart() {
+  if (!sumPoolChartRef.value) return
+  const data = recent50ForCharts.value
+  const periods = data.map(d => d.period)
+  const sums = data.map(d => frontSum(d.frontNumbers))
+  const pools = data.map(d => d.pool ?? 0)
+  const ma10 = movingAvg(sums, 10)
+
+  sumPoolChart = echarts.init(sumPoolChartRef.value)
+  sumPoolChart.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+    legend: { data: ['前区和值', '10期均线', '奖池累计(亿元)'], top: 0, textStyle: { fontSize: 12 } },
+    grid: { left: 50, right: 60, top: 35, bottom: 25 },
+    xAxis: { type: 'category', data: periods, axisLabel: { rotate: 45, fontSize: 10 } },
+    yAxis: [
+      { type: 'value', name: '和值', min: 50, max: 140, splitLine: { lineStyle: { type: 'dashed', color: '#eee' } } },
+      { type: 'value', name: '奖池(亿)', min: 0, max: 10, splitLine: { show: false }, axisLabel: { formatter: v => (v / 1e8).toFixed(1) } }
+    ],
+    series: [
+      { name: '前区和值', type: 'line', data: sums, smooth: false, symbol: 'circle', symbolSize: 5, lineStyle: { width: 2, color: '#ff4d4f' }, itemStyle: { color: '#ff4d4f' }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(255,77,79,0.25)' }, { offset: 1, color: 'rgba(255,77,79,0.02)' }]) } },
+      { name: '10期均线', type: 'line', data: ma10, smooth: true, symbol: 'none', lineStyle: { width: 2, color: '#faad14', type: 'dashed' } },
+      { name: '奖池累计(亿元)', type: 'line', yAxisIndex: 1, data: pools, smooth: true, symbol: 'none', lineStyle: { width: 2, color: '#1890ff' }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(24,144,255,0.2)' }, { offset: 1, color: 'rgba(24,144,255,0.02)' }]) } }
+    ]
+  })
+}
+
+function initSpanAcChart() {
+  if (!spanAcChartRef.value) return
+  const data = recent50ForCharts.value
+  const periods = data.map(d => d.period)
+  const spans = data.map(d => span(d.frontNumbers))
+  const acs = data.map(d => acValue(d.frontNumbers))
+
+  spanAcChart = echarts.init(spanAcChartRef.value)
+  spanAcChart.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    legend: { data: ['跨度', 'AC值'], top: 0, textStyle: { fontSize: 12 } },
+    grid: { left: 45, right: 40, top: 35, bottom: 25 },
+    xAxis: { type: 'category', data: periods, axisLabel: { rotate: 45, fontSize: 10 } },
+    yAxis: [
+      { type: 'value', name: '跨度', min: 0, max: 35, splitLine: { lineStyle: { type: 'dashed', color: '#eee' } } },
+      { type: 'value', name: 'AC值', min: 0, max: 10, splitLine: { show: false } }
+    ],
+    series: [
+      { name: '跨度', type: 'bar', data: spans, barWidth: 10, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#ff7875' }, { offset: 1, color: '#ffccc7' }]), borderRadius: [3, 3, 0, 0] } },
+      { name: 'AC值', type: 'line', yAxisIndex: 1, data: acs, smooth: true, symbol: 'diamond', symbolSize: 6, lineStyle: { width: 2, color: '#1890ff' }, itemStyle: { color: '#1890ff' } }
+    ]
+  })
+}
+
+function initOddEvenChart() {
+  if (!oddEvenChartRef.value) return
+  const data = recent50ForCharts.value
+  const periods = data.map(d => d.period)
+  const odds = data.map(d => d.frontNumbers.filter(n => n % 2 === 1).length)
+  const evens = data.map(d => d.frontNumbers.filter(n => n % 2 === 0).length)
+  const consec = data.map(d => consecutivePairs(d.frontNumbers))
+
+  oddEvenChart = echarts.init(oddEvenChartRef.value)
+  oddEvenChart.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter(params) { let s = `<b>${params[0].axisValue}</b><br/>`; params.forEach(p => { s += `${p.marker} ${p.seriesName}: ${p.value}<br/>` }); return s } },
+    legend: { data: ['奇数', '偶数', '连号对数'], top: 0, textStyle: { fontSize: 12 } },
+    grid: { left: 45, right: 70, top: 35, bottom: 25 },
+    xAxis: { type: 'category', data: periods, axisLabel: { rotate: 45, fontSize: 10 } },
+    yAxis: [
+      { type: 'value', max: 5, splitLine: { lineStyle: { type: 'dashed', color: '#eee' } } },
+      { type: 'value', name: '连号', min: 0, max: 3, splitLine: { show: false } }
+    ],
+    series: [
+      { name: '奇数', type: 'bar', stack: 'oddEven', data: odds, barWidth: 14, itemStyle: { color: '#ff4d4f' }, label: { show: true, position: 'inside', fontSize: 10, color: '#fff', formatter: p => `${p.value}奇` } },
+      { name: '偶数', type: 'bar', stack: 'oddEven', data: evens, barWidth: 14, itemStyle: { color: '#1890ff', borderRadius: [3, 3, 0, 0] }, label: { show: true, position: 'inside', fontSize: 10, color: '#fff', formatter: p => `${p.value}偶` } },
+      { name: '连号对数', type: 'line', yAxisIndex: 1, data: consec, smooth: true, symbol: 'triangle', symbolSize: 8, lineStyle: { width: 2, color: '#52c41a' }, itemStyle: { color: '#52c41a' }, label: { show: true, fontSize: 10, color: '#52c41a', formatter: p => `${p.value}对` } }
+    ]
+  })
+}
+
+function initOmissionChart() {
+  if (!omissionChartRef.value) return
+  const frontOmit = []
+  const frontFreq = []
+  for (let i = 1; i <= 35; i++) {
+    frontOmit.push(calculateOmission(lotteryData, i, 'front'))
+    frontFreq.push(calculateFrequency(lotteryData, i, 30, 'front'))
+  }
+  const nums = Array.from({ length: 35 }, (_, i) => String(i + 1).padStart(2, '0'))
+
+  omissionChart = echarts.init(omissionChartRef.value)
+  omissionChart.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter(params) { const idx = parseInt(params[0].axisValue) - 1; return `<b>号码 ${params[0].axisValue}</b><br/>${params[0].marker} 出现频次：${params[0].value}次<br/>${params[1].marker} 遗漏值：${params[1].value}期` } },
+    legend: { data: ['出现频次 (近30期)', '遗漏期数'], top: 0, textStyle: { fontSize: 12 } },
+    grid: { left: 50, right: 40, top: 35, bottom: 25 },
+    xAxis: { type: 'category', data: nums, axisLabel: { fontSize: 10 } },
+    yAxis: [
+      { type: 'value', name: '频次', max: Math.max(...frontFreq, 5) + 2, splitLine: { lineStyle: { type: 'dashed', color: '#eee' } } },
+      { type: 'value', name: '遗漏', inverse: true, min: 0, max: Math.max(...frontOmit, 10) + 5, splitLine: { show: false } }
+    ],
+    series: [
+      { name: '出现频次 (近30期)', type: 'bar', data: frontFreq, barWidth: 6, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#ff4d4f' }, { offset: 1, color: '#ffa39e' }]), borderRadius: [2, 2, 0, 0] } },
+      { name: '遗漏期数', type: 'bar', yAxisIndex: 1, data: frontOmit, barWidth: 6, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#bbb' }, { offset: 1, color: '#e8e8e8' }]), borderRadius: [2, 2, 0, 0] } }
+    ]
+  })
+}
+
+function handleResize() {
+  sumPoolChart?.resize()
+  spanAcChart?.resize()
+  oddEvenChart?.resize()
+  omissionChart?.resize()
+}
+
+onMounted(() => {
+  initCharts()
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+  sumPoolChart?.dispose()
+  spanAcChart?.dispose()
+  oddEvenChart?.dispose()
+  omissionChart?.dispose()
+})
+
 function refreshData() {
-  // Placeholder for future data refresh
   alert('数据已是最新')
 }
 
 function updatePrediction() {
-  // Placeholder for future prediction update
   alert('预测已更新')
 }
 </script>
@@ -739,47 +828,11 @@ function updatePrediction() {
   gap: 20px;
 }
 
-.chart-placeholder {
-  background: #fafbfc;
-  border: 1px dashed #d9d9d9;
-  border-radius: 8px;
-  padding: 24px;
-  text-align: center;
-  transition: all 0.3s;
-  cursor: pointer;
-}
-
-.chart-placeholder:hover {
-  border-color: #1890ff;
-  background: #f0f7ff;
-}
-
-.chart-icon {
-  font-size: 32px;
-  margin-bottom: 8px;
-}
-
-.chart-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 4px;
-}
-
-.chart-desc {
-  font-size: 12px;
-  color: #aaa;
-  margin-bottom: 16px;
-}
-
-.chart-preview {
-  max-width: 100%;
-  height: 80px;
-}
-
-.chart-svg {
+.echart-container {
   width: 100%;
-  height: 100%;
+  height: 360px;
+  border-radius: 8px;
+  background: #fafbfc;
 }
 
 /* ========== Heatmap ========== */
@@ -889,6 +942,10 @@ function updatePrediction() {
 
   .charts-grid {
     grid-template-columns: 1fr;
+  }
+
+  .echart-container {
+    height: 280px;
   }
 
   .front-heatmap {

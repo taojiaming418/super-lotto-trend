@@ -29,8 +29,8 @@ import { ref } from 'vue'
 const navItems = ref([
   { path: '/dashboard', title: '仪表盘', icon: '📊' },
   { path: '/history', title: '开奖历史', icon: '🕐' },
-  { path: '/trend', title: '走势分析', icon: '' },
-  { path: '/prediction', title: '预测号码', icon: '' },
+  { path: '/trend', title: '走势分析', icon: '📈' },
+  { path: '/prediction', title: '预测号码', icon: '🎯' },
   { path: '/omission', title: '冷热遗漏', icon: '🔥' },
   { path: '/structure', title: '结构特征', icon: '🔲' },
 ])
