@@ -49,4 +49,9 @@ const router = createRouter({
   routes
 })
 
+// 动态页面标题
+router.afterEach((to) => {
+  document.title = to.meta?.title ? `${to.meta.title} · 大乐透走势` : '大乐透走势分析'
+})
+
 export default router
