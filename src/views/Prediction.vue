@@ -13,6 +13,12 @@
       </div>
     </div>
 
+    <!-- 预测期号 -->
+    <div class="prediction-period-tag">
+      <span class="period-badge">🎯 预测 {{ nextPeriod }}期</span>
+      <span class="period-badge ref-badge">📌 上期 {{ latestDraw?.period }}期</span>
+    </div>
+
     <!-- 置信度提示 -->
     <div class="alert-box" :class="confidenceLevel">
       <div class="alert-icon">{{ confidenceIcon }}</div>
@@ -33,7 +39,7 @@
 
     <!-- 最新开奖参考 -->
     <div class="card reference-card" v-if="latestDraw">
-      <div class="card-title">本期参考 · 上期开奖 {{ latestDraw.period }}期</div>
+      <div class="card-title">上期开奖参考 · {{ latestDraw.period }}期 开奖号码</div>
       <div class="ref-numbers">
         <span v-for="n in latestDraw.frontNumbers" :key="'rf'+n" class="ball ball-front ball-sm">{{ padNum(n) }}</span>
         <span class="ref-divider">+</span>
@@ -118,6 +124,9 @@ import {
 import { generatePrediction } from '@/utils/v26'
 
 const latestDraw = getLatestDraw()
+
+// 预测期号 = 最新一期 + 1
+const nextPeriod = computed(() => latestDraw ? latestDraw.period + 1 : '——')
 
 // V26模型预测
 const prediction = computed(() => generatePrediction(lotteryData))
@@ -433,6 +442,34 @@ function regenerate() {
 .alert-error {
   background: #fff2f0;
   border: 1px solid #ffccc7;
+}
+
+/* 预测期号标签 */
+.prediction-period-tag {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.period-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #e6f7ff, #bae7ff);
+  color: #1890ff;
+  border: 1px solid #91d5ff;
+}
+
+.period-badge.ref-badge {
+  background: #f5f5f5;
+  color: #888;
+  border: 1px solid #e8e8e8;
+  font-weight: 400;
 }
 
 .alert-icon {
