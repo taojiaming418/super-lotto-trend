@@ -160,28 +160,44 @@ function scoreBackNumbers(history) {
   return scores.sort((a, b) => b.score - a.score)
 }
 
-// 生成预测号码
-export function generatePrediction(history) {
+// 生成预测号码（jitter>0时加入随机扰动，每次结果不同）
+export function generatePrediction(history, jitter = 0) {
   const frontScores = scoreFrontNumbers(history)
   const backScores = scoreBackNumbers(history)
   
+  // 应用随机扰动（让每次重新生成有变化）
+  function applyJitter(arr) {
+    if (jitter <= 0) return arr
+    return arr.map(s => ({
+      ...s,
+      score: s.score + (Math.random() - 0.5) * jitter * 2
+    }))
+  }
+  
+  const jitteredFront = applyJitter(frontScores)
+  const jitteredBack = applyJitter(backScores)
+  
+  // 重新排序
+  const sortedFront = [...jitteredFront].sort((a, b) => b.score - a.score)
+  const sortedBack = [...jitteredBack].sort((a, b) => b.score - a.score)
+  
   // 智能推荐：综合得分最高的5+2
-  const smartFront = frontScores.slice(0, 5).map(s => s.number).sort((a, b) => a - b)
-  const smartBack = backScores.slice(0, 2).map(s => s.number).sort((a, b) => a - b)
+  const smartFront = sortedFront.slice(0, 5).map(s => s.number).sort((a, b) => a - b)
+  const smartBack = sortedBack.slice(0, 2).map(s => s.number).sort((a, b) => a - b)
   
   // 热号优先：近5期频率最高的
-  const hotFront = [...frontScores]
+  const hotFront = [...jitteredFront]
     .sort((a, b) => b.features.f5 - a.features.f5 || b.features.f10 - a.features.f10)
     .slice(0, 5).map(s => s.number).sort((a, b) => a - b)
-  const hotBack = [...backScores]
+  const hotBack = [...jitteredBack]
     .sort((a, b) => b.features.l3 - a.features.l3 || b.features.l8 - a.features.l8)
     .slice(0, 2).map(s => s.number).sort((a, b) => a - b)
   
   // 冷号修复：遗漏最大的（得分最低的）
-  const coldFront = [...frontScores]
-    .reverse().slice(0, 5).map(s => s.number).sort((a, b) => a - b)
-  const coldBack = [...backScores]
-    .reverse().slice(0, 2).map(s => s.number).sort((a, b) => a - b)
+  const coldFront = [...jitteredFront]
+    .sort((a, b) => a.score - b.score).slice(0, 5).map(s => s.number).sort((a, b) => a - b)
+  const coldBack = [...jitteredBack]
+    .sort((a, b) => a.score - b.score).slice(0, 2).map(s => s.number).sort((a, b) => a - b)
   
   return {
     smart: { front: smartFront, back: smartBack, confidence: 76 },

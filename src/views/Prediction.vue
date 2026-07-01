@@ -129,7 +129,16 @@ const latestDraw = getLatestDraw()
 const nextPeriod = computed(() => latestDraw ? latestDraw.period + 1 : '——')
 
 // V26模型预测
-const prediction = computed(() => generatePrediction(lotteryData))
+// 重新生成种子（每次点击+1，分数jitter随之变化）
+const regenerateKey = ref(0)
+
+// prediction 改为响应式，每次 regenerateKey 变化时重新计算
+const prediction = computed(() => {
+  regenerateKey.value // 依赖此值，变化时重新计算
+  // 首次加载无扰动（jitter=0），之后点击重新生成才有扰动
+  const jitter = regenerateKey.value > 0 ? 1.5 : 0
+  return generatePrediction(lotteryData, jitter)
+})
 
 // 模型生成时间
 const now = new Date()
@@ -340,7 +349,7 @@ const confidenceTip = computed(() => {
 
 // 重新生成
 function regenerate() {
-  location.reload()
+  regenerateKey.value++
 }
 </script>
 
