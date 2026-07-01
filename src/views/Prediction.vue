@@ -116,7 +116,7 @@
 </template>
 
 <script setup>
-import { ref, computed, shallowRef } from 'vue'
+import { ref, computed } from 'vue'
 import { lotteryData, getLatestDraw } from '@/data/lottery'
 import {
   frontSum, span, oddEvenRatio, zoneRatio
@@ -127,9 +127,6 @@ const latestDraw = getLatestDraw()
 
 // 预测期号 = 最新一期 + 1
 const nextPeriod = computed(() => latestDraw ? latestDraw.period + 1 : '——')
-
-// V26模型预测（手动刷新，不用 computed，避免依赖追踪问题）
-const rawPrediction = shallowRef(generatePrediction(lotteryData, 0))
 
 // 模型生成时间（按需更新）
 // 模型生成时间（按需更新）
@@ -223,13 +220,12 @@ function calcStars(frontNums, frontScores) {
   return 1
 }
 
-// 生成所有策略
-const strategies = computed(() => {
-  const pred = rawPrediction.value
+// 构建策略列表的纯函数
+function buildStrategies(jitter) {
+  const pred = generatePrediction(lotteryData, jitter)
   const frontScores = pred.frontScores || []
   const backScores = pred.backScores || []
 
-  // 构建号码评分映射
   function buildScoreMap(nums, scores) {
     const map = {}
     for (const n of nums) {
@@ -250,7 +246,6 @@ const strategies = computed(() => {
   const c2 = calcConfidence(s2Front, s2Back, frontScores, backScores)
   const c3 = calcConfidence(s3Front, s3Back, frontScores, backScores)
 
-  // 总评分
   function totalScore(nums, scores) {
     let t = 0
     for (const n of nums) {
@@ -265,57 +260,68 @@ const strategies = computed(() => {
   const t3 = totalScore(s3Front, frontScores)
   const maxT = Math.max(t1, t2, t3, 1)
 
-  return [
-    {
-      name: '智能推荐',
-      desc: 'V26 5D特征综合评分（重号/隔期/邻号/转移/状态匹配）',
-      frontNumbers: s1Front,
-      backNumbers: s1Back,
-      stats: computeStats(s1Front, s1Back),
-      stars: calcStars(s1Front, frontScores),
-      confidence: c1,
-      confidenceClass: c1 >= 75 ? 'high' : c1 >= 60 ? 'mid' : 'low',
-      totalScore: t1,
-      scorePercent: Math.round(t1 / maxT * 100),
-      scoreMap: buildScoreMap(s1Front, frontScores),
-      backScoreMap: buildScoreMap(s1Back, backScores),
-    },
-    {
-      name: '热号优先',
-      desc: '近5期高频追踪 + 8特征后区模型',
-      frontNumbers: s2Front,
-      backNumbers: s2Back,
-      stats: computeStats(s2Front, s2Back),
-      stars: calcStars(s2Front, frontScores),
-      confidence: c2,
-      confidenceClass: c2 >= 75 ? 'high' : c2 >= 60 ? 'mid' : 'low',
-      totalScore: t2,
-      scorePercent: Math.round(t2 / maxT * 100),
-      scoreMap: buildScoreMap(s2Front, frontScores),
-      backScoreMap: buildScoreMap(s2Back, backScores),
-    },
-    {
-      name: '冷号修复',
-      desc: '长遗漏回补 + 邻号±3特征',
-      frontNumbers: s3Front,
-      backNumbers: s3Back,
-      stats: computeStats(s3Front, s3Back),
-      stars: calcStars(s3Front, frontScores),
-      confidence: c3,
-      confidenceClass: c3 >= 75 ? 'high' : c3 >= 60 ? 'mid' : 'low',
-      totalScore: t3,
-      scorePercent: Math.round(t3 / maxT * 100),
-      scoreMap: buildScoreMap(s3Front, frontScores),
-      backScoreMap: buildScoreMap(s3Back, backScores),
-    }
-  ]
-})
+  return {
+    list: [
+      {
+        name: '智能推荐',
+        desc: 'V26 5D特征综合评分（重号/隔期/邻号/转移/状态匹配）',
+        frontNumbers: s1Front,
+        backNumbers: s1Back,
+        stats: computeStats(s1Front, s1Back),
+        stars: calcStars(s1Front, frontScores),
+        confidence: c1,
+        confidenceClass: c1 >= 75 ? 'high' : c1 >= 60 ? 'mid' : 'low',
+        totalScore: t1,
+        scorePercent: Math.round(t1 / maxT * 100),
+        scoreMap: buildScoreMap(s1Front, frontScores),
+        backScoreMap: buildScoreMap(s1Back, backScores),
+      },
+      {
+        name: '热号优先',
+        desc: '近5期高频追踪 + 8特征后区模型',
+        frontNumbers: s2Front,
+        backNumbers: s2Back,
+        stats: computeStats(s2Front, s2Back),
+        stars: calcStars(s2Front, frontScores),
+        confidence: c2,
+        confidenceClass: c2 >= 75 ? 'high' : c2 >= 60 ? 'mid' : 'low',
+        totalScore: t2,
+        scorePercent: Math.round(t2 / maxT * 100),
+        scoreMap: buildScoreMap(s2Front, frontScores),
+        backScoreMap: buildScoreMap(s2Back, backScores),
+      },
+      {
+        name: '冷号修复',
+        desc: '长遗漏回补 + 邻号±3特征',
+        frontNumbers: s3Front,
+        backNumbers: s3Back,
+        stats: computeStats(s3Front, s3Back),
+        stars: calcStars(s3Front, frontScores),
+        confidence: c3,
+        confidenceClass: c3 >= 75 ? 'high' : c3 >= 60 ? 'mid' : 'low',
+        totalScore: t3,
+        scorePercent: Math.round(t3 / maxT * 100),
+        scoreMap: buildScoreMap(s3Front, frontScores),
+        backScoreMap: buildScoreMap(s3Back, backScores),
+      }
+    ],
+    frontScores,
+    backScores
+  }
+}
 
-// 综合置信度（取平均）
+// 初始策略数据（不用 computed，直接用 ref + 纯函数手动刷新）
+const state = ref(buildStrategies(0))
+
+// 策略列表
+const strategies = computed(() => state.value.list)
+
+// 综合置信度
 const overallConfidence = computed(() => {
-  if (!strategies.value.length) return 76
-  const sum = strategies.value.reduce((s, st) => s + st.confidence, 0)
-  return Math.round(sum / strategies.value.length)
+  const s = state.value.list
+  if (!s.length) return 76
+  const sum = s.reduce((a, b) => a + b.confidence, 0)
+  return Math.round(sum / s.length)
 })
 
 const confidenceLevel = computed(() => {
@@ -339,12 +345,9 @@ const confidenceTip = computed(() => {
   return `所选号码评分仅高于${v}%的号码，特征偏弱，建议参考走势图表`
 })
 
-// 重新生成（每次调用都重新计算，加入随机扰动）
-let genCount = 1
+// 重新生成（每次调用直接更新 state ref）
 function regenerate() {
-  genCount++
-  const jitter = genCount > 1 ? 3 : 0
-  rawPrediction.value = generatePrediction(lotteryData, jitter)
+  state.value = buildStrategies(3)
   // 更新时间戳
   const d = new Date()
   modelTimestamp.value = `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
