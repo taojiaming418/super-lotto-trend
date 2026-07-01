@@ -221,8 +221,8 @@ function calcStars(frontNums, frontScores) {
 }
 
 // 构建策略列表的纯函数
-function buildStrategies(jitter) {
-  const pred = generatePrediction(lotteryData, jitter)
+function buildStrategies() {
+  const pred = generatePrediction(lotteryData)
   const frontScores = pred.frontScores || []
   const backScores = pred.backScores || []
 
@@ -311,7 +311,7 @@ function buildStrategies(jitter) {
 }
 
 // 初始策略数据（不用 computed，直接用 ref + 纯函数手动刷新）
-const state = ref(buildStrategies(0))
+const state = ref(buildStrategies())
 
 // 策略列表
 const strategies = computed(() => state.value.list)
@@ -345,12 +345,9 @@ const confidenceTip = computed(() => {
   return `所选号码评分仅高于${v}%的号码，特征偏弱，建议参考走势图表`
 })
 
-// 重新生成（每次调用直接更新 state ref）
+// 重新生成（刷新页面，generatePrediction 已内置随机扰动）
 function regenerate() {
-  state.value = buildStrategies(3)
-  // 更新时间戳
-  const d = new Date()
-  modelTimestamp.value = `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+  location.reload()
 }
 </script>
 

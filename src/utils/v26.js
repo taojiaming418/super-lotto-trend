@@ -96,6 +96,9 @@ function scoreFrontNumbers(history) {
     const trend = f5 / 5 - f10 / 10
     score += f5 * 3 + f10 * 2 + trend * 5
     
+    // 加入随机扰动（±0.5，让每次重新生成有变化）
+    score += (Math.random() - 0.5) * 1
+    
     scores.push({ number: n, score, features: { repeat, gapRepeat, neighbor, transferScore, stateMatch, f5, f10 } })
   }
   
@@ -160,43 +163,29 @@ function scoreBackNumbers(history) {
   return scores.sort((a, b) => b.score - a.score)
 }
 
-// 生成预测号码（jitter>0时加入随机扰动，每次结果不同）
-export function generatePrediction(history, jitter = 0) {
+// 生成预测号码（每次结果不同，内置随机扰动）
+export function generatePrediction(history) {
   const frontScores = scoreFrontNumbers(history)
   const backScores = scoreBackNumbers(history)
   
-  // 应用随机扰动（让每次重新生成有变化）
-  function applyJitter(arr) {
-    if (jitter <= 0) return arr
-    return arr.map(s => ({
-      ...s,
-      score: s.score + (Math.random() - 0.5) * jitter * 2
-    }))
-  }
-  
-  const jitteredFront = applyJitter(frontScores)
-  const jitteredBack = applyJitter(backScores)
-  
-  // 重新排序
-  const sortedFront = [...jitteredFront].sort((a, b) => b.score - a.score)
-  const sortedBack = [...jitteredBack].sort((a, b) => b.score - a.score)
-  
   // 智能推荐：综合得分最高的5+2
-  const smartFront = sortedFront.slice(0, 5).map(s => s.number).sort((a, b) => a - b)
-  const smartBack = sortedBack.slice(0, 2).map(s => s.number).sort((a, b) => a - b)
+  const smartFront = [...frontScores].map(s => ({...s, score: s.score + (Math.random()-0.5)*2}))
+    .sort((a, b) => b.score - a.score).slice(0, 5).map(s => s.number).sort((a, b) => a - b)
+  const smartBack = [...backScores].map(s => ({...s, score: s.score + (Math.random()-0.5)*2}))
+    .sort((a, b) => b.score - a.score).slice(0, 2).map(s => s.number).sort((a, b) => a - b)
   
   // 热号优先：近5期频率最高的
-  const hotFront = [...jitteredFront]
+  const hotFront = [...frontScores]
     .sort((a, b) => b.features.f5 - a.features.f5 || b.features.f10 - a.features.f10)
     .slice(0, 5).map(s => s.number).sort((a, b) => a - b)
-  const hotBack = [...jitteredBack]
+  const hotBack = [...backScores]
     .sort((a, b) => b.features.l3 - a.features.l3 || b.features.l8 - a.features.l8)
     .slice(0, 2).map(s => s.number).sort((a, b) => a - b)
   
   // 冷号修复：遗漏最大的（得分最低的）
-  const coldFront = [...jitteredFront]
+  const coldFront = [...frontScores]
     .sort((a, b) => a.score - b.score).slice(0, 5).map(s => s.number).sort((a, b) => a - b)
-  const coldBack = [...jitteredBack]
+  const coldBack = [...backScores]
     .sort((a, b) => a.score - b.score).slice(0, 2).map(s => s.number).sort((a, b) => a - b)
   
   return {
