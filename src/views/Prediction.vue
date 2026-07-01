@@ -116,7 +116,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, shallowRef } from 'vue'
 import { lotteryData, getLatestDraw } from '@/data/lottery'
 import {
   frontSum, span, oddEvenRatio, zoneRatio
@@ -128,21 +128,13 @@ const latestDraw = getLatestDraw()
 // 预测期号 = 最新一期 + 1
 const nextPeriod = computed(() => latestDraw ? latestDraw.period + 1 : '——')
 
-// V26模型预测
-// 重新生成种子（每次点击+1，分数jitter随之变化）
-const regenerateKey = ref(0)
+// V26模型预测（手动刷新，不用 computed，避免依赖追踪问题）
+const rawPrediction = shallowRef(generatePrediction(lotteryData, 0))
 
-// prediction 改为响应式，每次 regenerateKey 变化时重新计算
-const prediction = computed(() => {
-  regenerateKey.value // 依赖此值，变化时重新计算
-  // 首次加载无扰动（jitter=0），之后点击重新生成才有扰动
-  const jitter = regenerateKey.value > 0 ? 1.5 : 0
-  return generatePrediction(lotteryData, jitter)
-})
-
-// 模型生成时间
+// 模型生成时间（按需更新）
+// 模型生成时间（按需更新）
 const now = new Date()
-const modelTimestamp = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
+const modelTimestamp = ref(`${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`)
 
 // 号码格式化
 function padNum(n) {
@@ -233,7 +225,7 @@ function calcStars(frontNums, frontScores) {
 
 // 生成所有策略
 const strategies = computed(() => {
-  const pred = prediction.value
+  const pred = rawPrediction.value
   const frontScores = pred.frontScores || []
   const backScores = pred.backScores || []
 
@@ -347,9 +339,15 @@ const confidenceTip = computed(() => {
   return `所选号码评分仅高于${v}%的号码，特征偏弱，建议参考走势图表`
 })
 
-// 重新生成
+// 重新生成（每次调用都重新计算，加入随机扰动）
+let genCount = 1
 function regenerate() {
-  regenerateKey.value++
+  genCount++
+  const jitter = genCount > 1 ? 3 : 0
+  rawPrediction.value = generatePrediction(lotteryData, jitter)
+  // 更新时间戳
+  const d = new Date()
+  modelTimestamp.value = `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
 }
 </script>
 
