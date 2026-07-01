@@ -1,6 +1,7 @@
-// 大乐透历史开奖数据（自动从 CSV 生成）
-// 共 957 期，最新: 26071 (2026-6-22)
+// 大乐透历史开奖数据（自动从 163 彩票更新）
+// 共 958 期，最新: 26072 (2026-06-29)
 export const lotteryData = [
+  { period: 26072, date: '2026-06-29', day: '一', frontNumbers: [1, 13, 26, 29, 30], backNumbers: [9, 11], firstPrize: 8484040, sales: 309759041, pool: 820383228.03 },
   { period: 26071, date: '2026-6-27', day: '六', frontNumbers: [5, 13, 22, 26, 32], backNumbers: [2, 3], firstPrize: 10000000, sales: 332658791, pool: 844492276 },
   { period: 26070, date: '2026-6-24', day: '三', frontNumbers: [4, 5, 15, 21, 32], backNumbers: [2, 11], firstPrize: 10000000, sales: 312722588, pool: 814894461 },
   { period: 26069, date: '2026-6-22', day: '一', frontNumbers: [12, 19, 21, 24, 29], backNumbers: [3, 10] },
@@ -960,15 +961,6 @@ export const lotteryData = [
   { period: 20001, date: '2020-1-1', day: '三', frontNumbers: [17, 25, 26, 32, 34], backNumbers: [4, 7] },
 ]
 
-export function getLatestDraw() {
-  return lotteryData[0]
-}
-
-export function getDraws(n = null) {
-  if (n) return lotteryData.slice(0, n)
-  return lotteryData
-}
-
-export function getTotalPeriods() {
-  return lotteryData.length
-}
+export function getLatestDraw() { return lotteryData[0] }
+export function getDraws(n = null) { return n ? lotteryData.slice(0, n) : lotteryData }
+export function getTotalPeriods() { return lotteryData.length }

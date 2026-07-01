@@ -7,7 +7,7 @@ const LOTTERY_JS = path.join(DATA_DIR, 'lottery.js')
 
 function fetch(url) {
   return new Promise((resolve, reject) => {
-    https.get(url, { timeout: 15000 }, r => {
+    https.get(url, { timeout: 20000, headers: { 'User-Agent': 'Mozilla/5.0' } }, r => {
       let d = ''
       r.on('data', c => d += c)
       r.on('end', () => resolve(d))
@@ -15,44 +15,50 @@ function fetch(url) {
   })
 }
 
-// 从开奖公告页面解析号码
-function parseNumbers(html) {
-  // 清理HTML标签，保留文本
-  const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
-  
-  const numMatch = text.match(/开奖号码[：:]\s*([\d\s]+?)\s*本期/)
-  if (!numMatch) {
-    // 备选：直接在HTML中找数字序列
-    const parts = html.match(/(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)[^\d]*(\d+)\s+(\d+)/)
-    if (!parts) return null
-    return {
-      front: parts.slice(1, 6).map(Number),
-      back: parts.slice(6).map(Number)
-    }
-  }
-  
-  const nums = numMatch[1].trim().split(/\s+/).map(Number)
-  if (nums.length < 7) return null
-  return {
-    front: nums.slice(0, 5),
-    back: nums.slice(5, 7)
-  }
-}
+// 解析网易彩票页面
+function parse163Page(html) {
+  try {
+    // 网易彩票页面里的 JSON 数据是 HTML 编码的 &quot;
+    const dec = html.replace(/&quot;/g, '"')
 
-// 从开奖公告页面解析财务数据
-function parseFinancial(html) {
-  const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
-  
-  const dateMatch = text.match(/开课日期[：:]([^<]+)/)
-  const salesMatch = text.match(/销售金额[：:]([\d,]+)/)
-  const poolMatch = html.match(/([\d,]+\.?\d*)元奖金滚入下期奖池/)
-  const prizeMatch = text.match(/一等奖[\s\S]*?([\d,]+)元/)
-  
-  return {
-    date: dateMatch ? dateMatch[1].trim() : '',
-    sales: salesMatch ? parseInt(salesMatch[1].replace(/,/g, '')) : null,
-    pool: poolMatch ? parseFloat(poolMatch[1].replace(/,/g, '')) : null,
-    prize: prizeMatch ? parseInt(prizeMatch[1].replace(/,/g, '')) : null
+    const deg = dec.match(/"degree":\[0,(\d+)\]/)
+    if (!deg) return null
+    const period = parseInt(deg[1])
+
+    const red = dec.match(/"red":\[0,"([\d,]+)"\]/)
+    if (!red) return null
+    const frontNumbers = red[1].split(',').map(Number)
+
+    const blue = dec.match(/"blue":\[0,"([\d,]+)"\]/)
+    if (!blue) return null
+    const backNumbers = blue[1].split(',').map(Number)
+
+    const dateM = dec.match(/开奖日期:\s*(\d{4}-\d{2}-\d{2})/)
+    if (!dateM) return null
+    const dateStr = dateM[1]
+
+    const salesM = dec.match(/"sales":\[0,(\d+)\]/)
+    const sales = salesM ? parseInt(salesM[1]) : null
+
+    const poolM = dec.match(/"poolMoney":\[0,([\d.]+)\]/)
+    const pool = poolM ? parseFloat(poolM[1]) : null
+
+    // 一等奖：取 items 数组第一个 amount
+    const itemsIdx = dec.indexOf('"items":[1,[')
+    let firstPrize = null
+    if (itemsIdx >= 0) {
+      const chunk = dec.substring(itemsIdx, itemsIdx + 500)
+      const amt = chunk.match(/"amount":\[0,"([\d,]+)"\]/)
+      if (amt) firstPrize = parseInt(amt[1].replace(/,/g, ''))
+    }
+
+    const d = new Date(dateStr)
+    const days = ['日', '一', '二', '三', '四', '五', '六']
+    const day = days[d.getDay()]
+
+    return { period, date: dateStr, day, frontNumbers, backNumbers, firstPrize, sales, pool }
+  } catch {
+    return null
   }
 }
 
@@ -83,7 +89,7 @@ function readExistingData() {
 }
 
 function entriesToJS(entries) {
-  let js = `// 大乐透历史开奖数据
+  let js = `// 大乐透历史开奖数据（自动从 163 彩票更新）
 // 共 ${entries.length} 期，最新: ${entries[0].period} (${entries[0].date})
 export const lotteryData = [\n`
   for (const d of entries) {
@@ -111,69 +117,46 @@ async function main() {
   const now = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
   console.log(`时间: ${now}`)
 
-  // 读取现有数据
   const entries = readExistingData()
   const existingPeriods = new Set(entries.map(e => e.period))
   console.log(`现有: ${entries.length} 期，最新: ${entries[0].period}`)
 
-  // 尝试抓取最新几期（从已知的开奖公告页面）
-  const knownPostIds = ['147338', '147253'] // 26071, 26070
+  // 从最新一期+1开始往后扫，直到页面不含彩票数据为止
+  let period = entries[0].period + 1
   let added = 0
-  let updated = 0
 
-  for (const postId of knownPostIds) {
+  while (true) {
+    const url = `https://sports.163.com/caipiao/lottery/dlt/${period}`
     try {
-      const html = await fetch(`https://www.js-lottery.com/cms/post-${postId}.html`)
-      const nums = parseNumbers(html)
-      if (!nums) { console.log(`  ⚠️ post-${postId}: 解析失败`); continue }
-      
-      // 从HTML中找出期号
-      const periodMatch = html.match(/第(\d+)期/)
-      if (!periodMatch) continue
-      const period = parseInt(periodMatch[1])
-      
-      if (existingPeriods.has(period)) {
-        // 检查是否需要更新financial数据
-        const existing = entries.find(e => e.period === period)
-        if (existing && !existing.firstPrize) {
-          const fin = parseFinancial(html)
-          if (fin.prize) existing.firstPrize = fin.prize
-          if (fin.sales) existing.sales = fin.sales
-          if (fin.pool) existing.pool = fin.pool
-          if (fin.date) existing.date = fin.date
-          console.log(`  ✓ post-${postId} (${period}期): 更新financial数据`)
-          updated++
-        } else {
-          console.log(`  - post-${postId} (${period}期): 已存在`)
-        }
-      } else {
-        // 新增
-        const fin = parseFinancial(html)
-        // 获取星期
-        const d = new Date(fin.date)
-        const days = ['日', '一', '二', '三', '四', '五', '六']
-        entries.push({
-          period,
-          date: fin.date,
-          day: days[d.getDay()],
-          frontNumbers: nums.front,
-          backNumbers: nums.back,
-          firstPrize: fin.prize,
-          sales: fin.sales,
-          pool: fin.pool,
-        })
-        console.log(`  + post-${postId} (${period}期): ${nums.front.join(',')} + ${nums.back.join(',')}`)
-        added++
+      const html = await fetch(url)
+
+      const parsed = parse163Page(html)
+      if (!parsed) {
+        console.log(`  - ${period}期: 未开奖或页面不存在（停止）`)
+        break
       }
+
+      if (existingPeriods.has(parsed.period)) {
+        console.log(`  - ${parsed.period}期: 已存在（停止）`)
+        break
+      }
+
+      // 新增
+      entries.push(parsed)
+      console.log(`  + ${parsed.period}期 (${parsed.date}): [${parsed.frontNumbers.join(',')}] + [${parsed.backNumbers.join(',')}]` +
+        (parsed.sales ? ` | 销售:${(parsed.sales / 1e8).toFixed(2)}亿 奖池:${(parsed.pool / 1e8).toFixed(2)}亿` : ''))
+      added++
+      period++
     } catch (e) {
-      console.log(`  ❌ post-${postId}: ${e.message}`)
+      console.log(`  ❌ ${period}期: ${e.message}（网络错误，停止）`)
+      break
     }
   }
 
-  if (added > 0 || updated > 0) {
+  if (added > 0) {
     entries.sort((a, b) => b.period - a.period)
     fs.writeFileSync(LOTTERY_JS, entriesToJS(entries), 'utf-8')
-    console.log(`\n✅ 更新完成! 新增${added}期, 更新${updated}条, 共${entries.length}期`)
+    console.log(`\n✅ 更新完成! 新增${added}期, 共${entries.length}期`)
   } else {
     console.log(`\n✅ 数据已最新`)
   }
