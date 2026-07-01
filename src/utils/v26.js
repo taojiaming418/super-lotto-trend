@@ -96,8 +96,8 @@ function scoreFrontNumbers(history) {
     const trend = f5 / 5 - f10 / 10
     score += f5 * 3 + f10 * 2 + trend * 5
     
-    // 加入随机扰动（±0.5，让每次重新生成有变化）
-    score += (Math.random() - 0.5) * 1
+    // 加入随机扰动（±3，让每次重新生成有不同排名）
+    score += (Math.random() - 0.5) * 6
     
     scores.push({ number: n, score, features: { repeat, gapRepeat, neighbor, transferScore, stateMatch, f5, f10 } })
   }
@@ -163,29 +163,36 @@ function scoreBackNumbers(history) {
   return scores.sort((a, b) => b.score - a.score)
 }
 
-// 生成预测号码（每次结果不同，内置随机扰动）
+// 生成预测号码（每次结果不同，所有策略加入随机扰动）
 export function generatePrediction(history) {
-  const frontScores = scoreFrontNumbers(history)
-  const backScores = scoreBackNumbers(history)
+  const rawFront = scoreFrontNumbers(history)
+  const rawBack = scoreBackNumbers(history)
+  
+  // 对每个号码的评分再加一次随机扰动（±3）
+  const addNoise = s => ({...s, score: s.score + (Math.random() - 0.5) * 6})
+  const frontScores = rawFront.map(addNoise).sort((a, b) => b.score - a.score)
+  const backScores = rawBack.map(addNoise).sort((a, b) => b.score - a.score)
   
   // 智能推荐：综合得分最高的5+2
-  const smartFront = [...frontScores].map(s => ({...s, score: s.score + (Math.random()-0.5)*2}))
-    .sort((a, b) => b.score - a.score).slice(0, 5).map(s => s.number).sort((a, b) => a - b)
-  const smartBack = [...backScores].map(s => ({...s, score: s.score + (Math.random()-0.5)*2}))
-    .sort((a, b) => b.score - a.score).slice(0, 2).map(s => s.number).sort((a, b) => a - b)
+  const smartFront = frontScores.slice(0, 5).map(s => s.number).sort((a, b) => a - b)
+  const smartBack = backScores.slice(0, 2).map(s => s.number).sort((a, b) => a - b)
   
-  // 热号优先：近5期频率最高的
-  const hotFront = [...frontScores]
-    .sort((a, b) => b.features.f5 - a.features.f5 || b.features.f10 - a.features.f10)
+  // 热号优先：近5期频率最高的（也加随机扰动，避免每次一样）
+  const hotFront = [...rawFront]
+    .map(s => ({...s, weight: s.features.f5 * 10 + s.features.f10 * 3 + (Math.random() - 0.5) * 5}))
+    .sort((a, b) => b.weight - a.weight)
     .slice(0, 5).map(s => s.number).sort((a, b) => a - b)
-  const hotBack = [...backScores]
-    .sort((a, b) => b.features.l3 - a.features.l3 || b.features.l8 - a.features.l8)
+  const hotBack = [...rawBack]
+    .map(s => ({...s, weight: s.features.l3 * 10 + s.features.l8 * 3 + (Math.random() - 0.5) * 5}))
+    .sort((a, b) => b.weight - a.weight)
     .slice(0, 2).map(s => s.number).sort((a, b) => a - b)
   
-  // 冷号修复：遗漏最大的（得分最低的）
-  const coldFront = [...frontScores]
+  // 冷号修复：得分最低的（加随机扰动）
+  const coldFront = [...rawFront]
+    .map(s => ({...s, score: s.score + (Math.random() - 0.5) * 6}))
     .sort((a, b) => a.score - b.score).slice(0, 5).map(s => s.number).sort((a, b) => a - b)
-  const coldBack = [...backScores]
+  const coldBack = [...rawBack]
+    .map(s => ({...s, score: s.score + (Math.random() - 0.5) * 6}))
     .sort((a, b) => a.score - b.score).slice(0, 2).map(s => s.number).sort((a, b) => a - b)
   
   return {
