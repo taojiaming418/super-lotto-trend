@@ -112,36 +112,62 @@
         <div class="score-bar-num">{{ strategy.scorePercent }}/100</div>
       </div>
 
-      <!-- 胆拖选择器 -->
+      <!-- 胆拖推荐方案 -->
       <div class="dt-section">
         <div class="dt-divider"></div>
         <div class="dt-title-row">
-          <span class="dt-title">📌 胆拖设定</span>
-          <span class="dt-desc">点击号码切换胆/拖 · 3胆4拖 共6注=12元</span>
+          <span class="dt-title">🎯 胆拖推荐方案</span>
+          <span class="dt-desc">点击号码可切换胆/拖</span>
         </div>
+        
+        <!-- 前区胆拖 -->
+        <div class="dt-subtitle">前区</div>
         <div class="dt-numbers">
           <div class="dt-group">
-            <span class="dt-label">胆码 <small>选3</small></span>
+            <span class="dt-label">胆码 <small>3</small></span>
             <div class="dt-balls">
-              <span v-for="n in strategy.frontNumbers.slice(0,3)" :key="'dm'+idx+n" class="ball ball-dan" @click="toggleDanTuo(idx, n)">{{ padNum(n) }}</span>
+              <span v-for="n in strategy.danNums" :key="'dm'+idx+n" class="ball ball-dan" @click="toggleDanTuo(idx, n)">{{ padNum(n) }}</span>
             </div>
           </div>
           <div class="dt-arrow">→</div>
           <div class="dt-group">
-            <span class="dt-label">拖码 <small>选4</small></span>
+            <span class="dt-label">拖码 <small>{{ strategy.tuoNums.length }}</small></span>
             <div class="dt-balls">
-              <span v-for="n in strategy.frontNumbers.slice(3)" :key="'tm'+idx+n" class="ball ball-tuo" @click="toggleDanTuo(idx, n)">{{ padNum(n) }}</span>
-              <span v-if="strategy.poolExtra" v-for="n in strategy.poolExtra" :key="'pe'+idx+n" class="ball ball-tuo ball-extra" @click="toggleDanTuo(idx, n, true)" title="来自热号池">{{ padNum(n) }}</span>
+              <span v-for="n in strategy.tuoNums" :key="'tm'+idx+n" class="ball ball-tuo" :class="{'ball-extra': strategy.poolExtra.includes(n)}" @click="toggleDanTuo(idx, n)">{{ padNum(n) }}</span>
             </div>
           </div>
         </div>
-        <div class="dt-summary">
-          <span>{{ strategy.danNums.length }}胆 {{ strategy.tuoNums.length }}拖</span>
+        <div class="dt-front-summary">
+          3胆{{ strategy.tuoNums.length }}拖 = C({{ strategy.tuoNums.length }}, 2) = {{ combo(strategy.tuoNums.length, 2) }}注
+        </div>
+        
+        <!-- 后区胆拖 -->
+        <div class="dt-subtitle dt-subtitle-back">后区</div>
+        <div class="dt-numbers">
+          <div class="dt-group">
+            <span class="dt-label">胆码 <small>1</small></span>
+            <div class="dt-balls">
+              <span :key="'bdm'+idx+strategy.backDan" class="ball ball-dan-back" @click="toggleBackDan(idx)">{{ padNum(strategy.backDan) }}</span>
+            </div>
+          </div>
+          <div class="dt-arrow">→</div>
+          <div class="dt-group">
+            <span class="dt-label">拖码 <small>{{ strategy.backTuos.length }}</small></span>
+            <div class="dt-balls">
+              <span v-for="n in strategy.backTuos" :key="'btm'+idx+n" class="ball ball-tuo-back" @click="toggleBackDan(idx, n)">{{ padNum(n) }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="dt-back-summary">
+          1胆{{ strategy.backTuos.length }}拖 = C({{ strategy.backTuos.length }}, 1) = {{ strategy.backBetCount }}注
+        </div>
+        
+        <!-- 总注数 -->
+        <div class="dt-total">
+          总注数 = {{ strategy.frontBetCount }} × {{ strategy.backBetCount }} = <strong>{{ strategy.frontBetCount * strategy.backBetCount }}注</strong>
           <span class="dt-dot">·</span>
-          <span>C({{ strategy.tuoNums.length }}, {{ 5 - strategy.danNums.length }}) = {{ strategy.betCount }}注</span>
-          <span class="dt-dot">·</span>
-          <span>{{ strategy.betCost }}元</span>
-          <span v-if="strategy.danNums.length !== 3" class="dt-warn">⚠️ 标准胆拖为3胆4拖</span>
+          <strong>{{ strategy.frontBetCount * strategy.backBetCount * 2 }}元</strong>
+          <span v-if="strategy.frontBetCount * strategy.backBetCount * 2 > 20" class="dt-warn">💰 追加 {{ (strategy.frontBetCount * strategy.backBetCount * 3).toFixed(0) }}元</span>
         </div>
       </div>
     </div>
@@ -411,17 +437,23 @@ const confidenceTip = computed(() => {
   return `所选号码评分仅高于${v}%的号码，特征偏弱，建议参考走势图表`
 })
 
-// 胆拖状态: 每个策略的胆码列表（默认前3个为胆）
+// 胆拖状态: 前区胆码/拖码 + 后区胆码/拖码
 const danTuoState = ref([])
 
 function initDanTuo() {
   danTuoState.value = state.value.list.map(s => ({
+    // 前区: 默认前3为胆, 后3+补1为拖
     dans: s.frontNumbers.slice(0,3),
     tuos: [...s.frontNumbers.slice(3)],
-    poolExtra: []
+    poolExtra: [],
+    // 后区: 默认第1为胆, 后2为拖
+    backDan: s.backNumbers[0],
+    backTuos: s.backNumbers.slice(1),
+    poolExtraBack: []
   }))
-  // 从热号池补充拖码到4个
+  // 从热号池补充前区拖码到4个
   const hp = hotPool.value.front
+  const hpBack = hotPool.value.back
   for (let i = 0; i < danTuoState.value.length; i++) {
     const dt = danTuoState.value[i]
     const used = new Set(dt.dans.concat(dt.tuos))
@@ -431,15 +463,22 @@ function initDanTuo() {
         dt.poolExtra.push(n)
       }
     }
+    // 补充后区拖码到3个
+    const usedBack = new Set([dt.backDan, ...dt.backTuos])
+    for (const n of hpBack) {
+      if (!usedBack.has(n) && dt.backTuos.length < 3) {
+        dt.backTuos.push(n)
+        dt.poolExtraBack.push(n)
+      }
+    }
   }
 }
 initDanTuo()
 
-function toggleDanTuo(idx, num, isExtra = false) {
+// 前区: 点击切换胆/拖
+function toggleDanTuo(idx, num) {
   const dt = danTuoState.value[idx]
   if (!dt) return
-  
-  // 如果在胆码里 → 移到拖码
   const danIdx = dt.dans.indexOf(num)
   if (danIdx !== -1) {
     dt.dans.splice(danIdx, 1)
@@ -447,8 +486,6 @@ function toggleDanTuo(idx, num, isExtra = false) {
     dt.tuos.sort((a,b) => a - b)
     return
   }
-  
-  // 如果在拖码里 → 移到胆码
   const tuoIdx = dt.tuos.indexOf(num)
   if (tuoIdx !== -1) {
     dt.tuos.splice(tuoIdx, 1)
@@ -458,28 +495,27 @@ function toggleDanTuo(idx, num, isExtra = false) {
   }
 }
 
-// 为每个策略计算胆拖信息
-function enhanceStrategy(strategy, idx) {
+// 后区: 点击拖码切换为胆码, 点击胆码轮换到第一个拖码
+function toggleBackDan(idx, num = null) {
   const dt = danTuoState.value[idx]
-  if (!dt) return strategy
-  
-  const danCount = dt.dans.length
-  const tuoCount = dt.tuos.length
-  const needTuo = 5 - danCount  // 前区共5个号码，胆拖需要从拖码中选
-  
-  let betCount = 0
-  if (tuoCount >= needTuo && needTuo > 0) {
-    // C(tuoCount, needTuo)
-    betCount = combo(tuoCount, needTuo)
-  }
-  
-  return {
-    ...strategy,
-    danNums: dt.dans,
-    tuoNums: dt.tuos,
-    poolExtra: dt.poolExtra,
-    betCount,
-    betCost: betCount * 2
+  if (!dt) return
+  if (num !== null) {
+    // 点击拖码 → 设为胆码, 原胆码变为拖码
+    const ti = dt.backTuos.indexOf(num)
+    if (ti !== -1) {
+      const oldDan = dt.backDan
+      dt.backDan = num
+      dt.backTuos[ti] = oldDan
+      dt.backTuos.sort((a,b) => a - b)
+    }
+  } else {
+    // 点击胆码 → 轮换到第一个拖码
+    if (dt.backTuos.length > 0) {
+      const firstTuo = dt.backTuos.shift()
+      dt.backTuos.push(dt.backDan)
+      dt.backTuos.sort((a,b) => a - b)
+      dt.backDan = firstTuo
+    }
   }
 }
 
@@ -492,6 +528,32 @@ function combo(n, k) {
     result = result * (n - k + i) / i
   }
   return result
+}
+
+// 为每个策略计算胆拖信息
+function enhanceStrategy(strategy, idx) {
+  const dt = danTuoState.value[idx]
+  if (!dt) return strategy
+  
+  // 前区
+  const frontNeedTuo = 5 - dt.dans.length
+  const frontBet = dt.tuos.length >= frontNeedTuo ? combo(dt.tuos.length, frontNeedTuo) : 0
+  
+  // 后区
+  const backNeedTuo = 2 - 1  // 后区共2个，胆码1个，需从拖码选1个
+  const backBet = dt.backTuos.length >= backNeedTuo ? combo(dt.backTuos.length, backNeedTuo) : 0
+  
+  return {
+    ...strategy,
+    danNums: dt.dans,
+    tuoNums: dt.tuos,
+    poolExtra: dt.poolExtra,
+    frontBetCount: frontBet,
+    backBetCount: backBet,
+    backDan: dt.backDan,
+    backTuos: dt.backTuos,
+    poolExtraBack: dt.poolExtraBack
+  }
 }
 
 // 重新生成（刷新页面，generatePrediction 已内置随机扰动）
@@ -1163,6 +1225,81 @@ function regenerate() {
 .ball-extra {
   border: 2px dashed #ffccc7;
   color: #ff7a45;
+}
+
+/* 后区胆拖 */
+.dt-subtitle {
+  font-size: 11px;
+  font-weight: 700;
+  color: #cf1322;
+  margin-bottom: 6px;
+  padding-left: 4px;
+}
+
+.dt-subtitle-back {
+  color: #096dd9;
+  margin-top: 10px;
+}
+
+.ball-dan-back {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #1890ff, #096dd9);
+  box-shadow: 0 1px 3px rgba(9, 109, 217, 0.3);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.ball-dan-back:active {
+  transform: scale(0.9);
+}
+
+.ball-tuo-back {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #096dd9;
+  background: #fff;
+  border: 2px solid #91d5ff;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.ball-tuo-back:active {
+  transform: scale(0.9);
+}
+
+.dt-front-summary, .dt-back-summary {
+  font-size: 11px;
+  color: #888;
+  margin: 4px 0 0 52px;
+}
+
+.dt-total {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #389e0d;
+}
+
+.dt-total strong {
+  font-size: 14px;
+  color: #237804;
 }
 
 .dt-arrow {
