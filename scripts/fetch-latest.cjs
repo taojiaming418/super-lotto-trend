@@ -157,6 +157,21 @@ async function main() {
     entries.sort((a, b) => b.period - a.period)
     fs.writeFileSync(LOTTERY_JS, entriesToJS(entries), 'utf-8')
     console.log(`\n✅ 更新完成! 新增${added}期, 共${entries.length}期`)
+
+    // 自动构建并推送到 GitHub 触发 Render 部署
+    const PROJECT_DIR = '/home/admin/.openclaw/workspace/super-lotto-trend'
+    try {
+      console.log('\n📦 构建网站...')
+      require('child_process').execSync('npm run build 2>&1', { cwd: PROJECT_DIR, stdio: 'inherit' })
+      
+      console.log('\n⬆️ 提交并推送到 GitHub (触发 Render 自动部署)...')
+      const msg = `auto: update lottery data to ${entries[0].period}`
+      require('child_process').execSync(`git add -A && git commit -m "${msg}" && git push origin master`, { cwd: PROJECT_DIR, stdio: 'inherit' })
+      console.log('\n✅ 网站已推送到 Render 构建中!')
+    } catch (e) {
+      console.error(`\n❌ 自动部署失败: ${e.message}`)
+      console.log('请手动执行: cd /home/admin/.openclaw/workspace/super-lotto-trend && npm run build && git add -A && git commit -m "..." && git push')
+    }
   } else {
     console.log(`\n✅ 数据已最新`)
   }
