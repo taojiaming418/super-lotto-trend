@@ -64,7 +64,7 @@
       <!-- 号码球 -->
       <div class="balls-row">
         <div class="balls-section">
-          <span class="balls-label">前区</span>
+          <span class="balls-label"><strong>胆拖</strong> 前区 <small>6码</small></span>
           <div class="balls-group">
             <span
               v-for="n in strategy.frontNumbers"
@@ -76,7 +76,7 @@
         </div>
         <div class="balls-divider">+</div>
         <div class="balls-section">
-          <span class="balls-label">后区</span>
+          <span class="balls-label"><strong>复式</strong> 后区 <small>3码</small></span>
           <div class="balls-group">
             <span
               v-for="n in strategy.backNumbers"

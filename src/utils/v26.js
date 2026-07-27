@@ -183,27 +183,27 @@ export function generatePrediction(history) {
   const frontScores = rawFront.map(addNoise).sort((a, b) => b.score - a.score)
   const backScores = rawBack.map(addNoise).sort((a, b) => b.score - a.score)
   
-  // 策略1: 智能推荐 — Top5+Top2
-  const smartFront = frontScores.slice(0, 5).map(s => s.number).sort((a, b) => a - b)
-  const smartBack = backScores.slice(0, 2).map(s => s.number).sort((a, b) => a - b)
-  
+  // 策略1: 智能推荐 — Top6+Top3（胆拖/复式用）
+  const smartFront = frontScores.slice(0, 6).map(s => s.number).sort((a, b) => a - b)
+  const smartBack = backScores.slice(0, 3).map(s => s.number).sort((a, b) => a - b)
+
   // 策略2: 热号优先 — 近5期频率最高的
   const hotFront = [...rawFront]
     .map(s => ({...s, weight: s.features.f5 * 10 + s.features.f10 * 3 + (Math.random() - 0.5) * 5}))
     .sort((a, b) => b.weight - a.weight)
-    .slice(0, 5).map(s => s.number).sort((a, b) => a - b)
+    .slice(0, 6).map(s => s.number).sort((a, b) => a - b)
   const hotBack = [...rawBack]
     .map(s => ({...s, weight: s.features.l3 * 10 + s.features.l8 * 3 + s.features.l5 * 5 + (Math.random() - 0.5) * 5}))
     .sort((a, b) => b.weight - a.weight)
-    .slice(0, 2).map(s => s.number).sort((a, b) => a - b)
-  
+    .slice(0, 3).map(s => s.number).sort((a, b) => a - b)
+
   // 策略3: 冷号 + 中遗漏回补 — 得分低的 + 中等遗漏号码
   const coldFront = [...rawFront]
     .map(s => ({...s, score: s.score + (Math.random() - 0.5) * 6}))
-    .sort((a, b) => a.score - b.score).slice(0, 5).map(s => s.number).sort((a, b) => a - b)
+    .sort((a, b) => a.score - b.score).slice(0, 6).map(s => s.number).sort((a, b) => a - b)
   const coldBack = [...rawBack]
     .map(s => ({...s, score: s.score + (Math.random() - 0.5) * 6}))
-    .sort((a, b) => a.score - b.score).slice(0, 2).map(s => s.number).sort((a, b) => a - b)
+    .sort((a, b) => a.score - b.score).slice(0, 3).map(s => s.number).sort((a, b) => a - b)
   
   return {
     smart: { front: smartFront, back: smartBack, confidence: 76 },
