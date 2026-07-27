@@ -4,7 +4,7 @@
     <div class="page-header">
       <div class="header-left">
         <h1 class="page-title">预测号码</h1>
-        <p class="page-subtitle">基于 V26 5D特征 + 后区8特征模型 · {{ modelTimestamp }}</p>
+        <p class="page-subtitle">基于 V27 平衡权重 + 后区Best-8模型 · {{ modelTimestamp }}</p>
       </div>
       <div class="header-actions">
         <button class="btn btn-regenerate" @click="regenerate">
