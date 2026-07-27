@@ -111,6 +111,39 @@
         </div>
         <div class="score-bar-num">{{ strategy.scorePercent }}/100</div>
       </div>
+
+      <!-- 胆拖选择器 -->
+      <div class="dt-section">
+        <div class="dt-divider"></div>
+        <div class="dt-title-row">
+          <span class="dt-title">📌 胆拖设定</span>
+          <span class="dt-desc">点击号码切换胆/拖 · 3胆4拖 共6注=12元</span>
+        </div>
+        <div class="dt-numbers">
+          <div class="dt-group">
+            <span class="dt-label">胆码 <small>选3</small></span>
+            <div class="dt-balls">
+              <span v-for="n in strategy.frontNumbers.slice(0,3)" :key="'dm'+idx+n" class="ball ball-dan" @click="toggleDanTuo(idx, n)">{{ padNum(n) }}</span>
+            </div>
+          </div>
+          <div class="dt-arrow">→</div>
+          <div class="dt-group">
+            <span class="dt-label">拖码 <small>选4</small></span>
+            <div class="dt-balls">
+              <span v-for="n in strategy.frontNumbers.slice(3)" :key="'tm'+idx+n" class="ball ball-tuo" @click="toggleDanTuo(idx, n)">{{ padNum(n) }}</span>
+              <span v-if="strategy.poolExtra" v-for="n in strategy.poolExtra" :key="'pe'+idx+n" class="ball ball-tuo ball-extra" @click="toggleDanTuo(idx, n, true)" title="来自热号池">{{ padNum(n) }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="dt-summary">
+          <span>{{ strategy.danNums.length }}胆 {{ strategy.tuoNums.length }}拖</span>
+          <span class="dt-dot">·</span>
+          <span>C({{ strategy.tuoNums.length }}, {{ 5 - strategy.danNums.length }}) = {{ strategy.betCount }}注</span>
+          <span class="dt-dot">·</span>
+          <span>{{ strategy.betCost }}元</span>
+          <span v-if="strategy.danNums.length !== 3" class="dt-warn">⚠️ 标准胆拖为3胆4拖</span>
+        </div>
+      </div>
     </div>
 
     <!-- 热号池（回测验证：Top-8 中前区≥2个的概率约33%） -->
@@ -346,8 +379,8 @@ const hotPool = ref(generateHotPool(lotteryData))
 // 初始策略数据（不用 computed，直接用 ref + 纯函数手动刷新）
 const state = ref(buildStrategies())
 
-// 策略列表
-const strategies = computed(() => state.value.list)
+// 策略列表（含胆拖信息）
+const strategies = computed(() => state.value.list.map((s, i) => enhanceStrategy(s, i)))
 
 // 综合置信度
 const overallConfidence = computed(() => {
@@ -377,6 +410,89 @@ const confidenceTip = computed(() => {
   if (v >= 60) return `所选号码的V26评分高于${v}%的号码，结果仅供参考`
   return `所选号码评分仅高于${v}%的号码，特征偏弱，建议参考走势图表`
 })
+
+// 胆拖状态: 每个策略的胆码列表（默认前3个为胆）
+const danTuoState = ref([])
+
+function initDanTuo() {
+  danTuoState.value = state.value.list.map(s => ({
+    dans: s.frontNumbers.slice(0,3),
+    tuos: [...s.frontNumbers.slice(3)],
+    poolExtra: []
+  }))
+  // 从热号池补充拖码到4个
+  const hp = hotPool.value.front
+  for (let i = 0; i < danTuoState.value.length; i++) {
+    const dt = danTuoState.value[i]
+    const used = new Set(dt.dans.concat(dt.tuos))
+    for (const n of hp) {
+      if (!used.has(n) && dt.tuos.length < 4) {
+        dt.tuos.push(n)
+        dt.poolExtra.push(n)
+      }
+    }
+  }
+}
+initDanTuo()
+
+function toggleDanTuo(idx, num, isExtra = false) {
+  const dt = danTuoState.value[idx]
+  if (!dt) return
+  
+  // 如果在胆码里 → 移到拖码
+  const danIdx = dt.dans.indexOf(num)
+  if (danIdx !== -1) {
+    dt.dans.splice(danIdx, 1)
+    dt.tuos.push(num)
+    dt.tuos.sort((a,b) => a - b)
+    return
+  }
+  
+  // 如果在拖码里 → 移到胆码
+  const tuoIdx = dt.tuos.indexOf(num)
+  if (tuoIdx !== -1) {
+    dt.tuos.splice(tuoIdx, 1)
+    dt.dans.push(num)
+    dt.dans.sort((a,b) => a - b)
+    return
+  }
+}
+
+// 为每个策略计算胆拖信息
+function enhanceStrategy(strategy, idx) {
+  const dt = danTuoState.value[idx]
+  if (!dt) return strategy
+  
+  const danCount = dt.dans.length
+  const tuoCount = dt.tuos.length
+  const needTuo = 5 - danCount  // 前区共5个号码，胆拖需要从拖码中选
+  
+  let betCount = 0
+  if (tuoCount >= needTuo && needTuo > 0) {
+    // C(tuoCount, needTuo)
+    betCount = combo(tuoCount, needTuo)
+  }
+  
+  return {
+    ...strategy,
+    danNums: dt.dans,
+    tuoNums: dt.tuos,
+    poolExtra: dt.poolExtra,
+    betCount,
+    betCost: betCount * 2
+  }
+}
+
+function combo(n, k) {
+  if (k < 0 || k > n) return 0
+  if (k === 0 || k === n) return 1
+  k = Math.min(k, n - k)
+  let result = 1
+  for (let i = 1; i <= k; i++) {
+    result = result * (n - k + i) / i
+  }
+  return result
+}
 
 // 重新生成（刷新页面，generatePrediction 已内置随机扰动）
 function regenerate() {
@@ -939,6 +1055,138 @@ function regenerate() {
   color: #d9d9d9;
   font-size: 16px;
   font-weight: 600;
+}
+
+/* 胆拖选择器 */
+.dt-section {
+  margin-top: 14px;
+}
+
+.dt-divider {
+  height: 1px;
+  background: #f0f0f0;
+  margin-bottom: 12px;
+}
+
+.dt-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.dt-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #d4380d;
+}
+
+.dt-desc {
+  font-size: 10px;
+  color: #bbb;
+}
+
+.dt-numbers {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff7e6;
+  border-radius: 8px;
+  padding: 10px 14px;
+  border: 1px solid #ffd591;
+}
+
+.dt-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dt-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #d46b08;
+  min-width: 40px;
+}
+
+.dt-label small {
+  font-weight: 400;
+  color: #bbb;
+  font-size: 9px;
+}
+
+.dt-balls {
+  display: flex;
+  gap: 4px;
+}
+
+.ball-dan {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #fa8c16, #d46b08);
+  box-shadow: 0 1px 3px rgba(212, 107, 8, 0.3);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.ball-dan:active {
+  transform: scale(0.9);
+}
+
+.ball-tuo {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #d46b08;
+  background: #fff;
+  border: 2px solid #ffd591;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.ball-tuo:active {
+  transform: scale(0.9);
+}
+
+.ball-extra {
+  border: 2px dashed #ffccc7;
+  color: #ff7a45;
+}
+
+.dt-arrow {
+  color: #d9d9d9;
+  font-size: 14px;
+}
+
+.dt-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #888;
+}
+
+.dt-dot {
+  color: #ddd;
+}
+
+.dt-warn {
+  color: #ff4d4f;
+  font-size: 11px;
+  margin-left: 6px;
 }
 
 @media (max-width: 768px) {
