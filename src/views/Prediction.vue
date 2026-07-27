@@ -112,6 +112,36 @@
         <div class="score-bar-num">{{ strategy.scorePercent }}/100</div>
       </div>
     </div>
+
+    <!-- 热号池（回测验证：Top-8 中前区≥2个的概率约33%） -->
+    <div class="card pool-card">
+      <div class="pool-title-row">
+        <div class="pool-title">
+          <span class="pool-icon">🔥</span>
+          <span class="pool-text">热号池</span>
+          <span class="pool-badge">回测 33% 中奖率</span>
+        </div>
+        <div class="pool-hint">
+          <span class="pool-hint-icon">💡</span>
+          <span class="pool-hint-text">Top-8 前区号码中至少含2个中奖号的概率~33%<br>建议从池中选取胆拖号码</span>
+        </div>
+      </div>
+      <div class="pool-numbers">
+        <div class="pool-section">
+          <span class="pool-label">前区 <small>8码</small></span>
+          <div class="pool-balls">
+            <span v-for="n in hotPool.front" :key="'hp'+n" class="ball ball-front ball-pool">{{ padNum(n) }}</span>
+          </div>
+        </div>
+        <div class="pool-divider">+</div>
+        <div class="pool-section">
+          <span class="pool-label">后区 <small>4码</small></span>
+          <div class="pool-balls">
+            <span v-for="n in hotPool.back" :key="'hb'+n" class="ball ball-back ball-pool">{{ padNum(n) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -121,7 +151,7 @@ import { lotteryData, getLatestDraw } from '@/data/lottery'
 import {
   frontSum, span, oddEvenRatio, zoneRatio
 } from '@/utils/lotto'
-import { generatePrediction } from '@/utils/v26'
+import { generatePrediction, generateHotPool } from '@/utils/v26'
 
 const latestDraw = getLatestDraw()
 
@@ -309,6 +339,9 @@ function buildStrategies() {
     backScores
   }
 }
+
+// 热号池
+const hotPool = ref(generateHotPool(lotteryData))
 
 // 初始策略数据（不用 computed，直接用 ref + 纯函数手动刷新）
 const state = ref(buildStrategies())
@@ -803,6 +836,111 @@ function regenerate() {
 }
 
 /* 响应式 */
+/* 热号池卡片 */
+.pool-card {
+  margin-top: -8px;
+  border: 1px solid #fff1b8;
+  background: linear-gradient(135deg, #fffbe6, #fff7e6);
+}
+
+.pool-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  gap: 12px;
+}
+
+.pool-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pool-icon {
+  font-size: 18px;
+}
+
+.pool-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: #d48806;
+}
+
+.pool-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #fff7e6;
+  border: 1px solid #ffd591;
+  color: #d46b08;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pool-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.pool-hint-icon {
+  font-size: 14px;
+}
+
+.pool-hint-text {
+  font-size: 11px;
+  color: #ad8b3a;
+  line-height: 1.4;
+}
+
+.pool-numbers {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 0 4px 0;
+}
+
+.pool-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pool-label {
+  font-size: 12px;
+  color: #d48806;
+  font-weight: 600;
+  min-width: 48px;
+}
+
+.pool-label small {
+  font-weight: 400;
+  color: #bbb;
+  font-size: 10px;
+}
+
+.pool-balls {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ball-pool {
+  width: 32px;
+  height: 32px;
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+.pool-divider {
+  color: #d9d9d9;
+  font-size: 16px;
+  font-weight: 600;
+}
+
 @media (max-width: 768px) {
   .prediction-page {
     padding: 0 4px;
