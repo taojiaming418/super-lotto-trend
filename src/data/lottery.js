@@ -1,6 +1,7 @@
 // 大乐透历史开奖数据（自动从 163 彩票更新）
-// 共 1016 期，最新: 26130 (2026-11-14)
+// 共 1017 期，最新: 26131 (2026-11-16)
 export const lotteryData = [
+  { period: 26131, date: '2026-11-16', day: '一', frontNumbers: [2, 11, 18, 19, 29], backNumbers: [4, 7], firstPrize: 6352665, sales: 323417845 },
   { period: 26130, date: '2026-11-14', day: '六', frontNumbers: [1, 7, 11, 27, 29], backNumbers: [2, 6] },
   { period: 26129, date: '2026-11-11', day: '三', frontNumbers: [2, 12, 14, 17, 33], backNumbers: [7, 8] },
   { period: 26128, date: '2026-11-09', day: '一', frontNumbers: [3, 13, 20, 25, 34], backNumbers: [9, 12], firstPrize: 6603916, sales: 309576382 },
